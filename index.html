@@ -215,7 +215,7 @@
           Import (.json or bookmarks .html) <input type="file" id="importFile" accept=".json,.html,.htm" class="sr" onchange="importData(this.files[0])" />
         </label>
         <button class="btn-good" onclick="toggleSync()">Sync</button>
-        <button class="btn-danger" onclick="if(confirm('Reset dashboard to defaults?')) resetAll()">Reset</button>
+        <button class="btn-danger" onclick="if(confirm('Reset  to defaults?')) resetAll()">Reset</button>
       </div>
     </div>
     <div id="sections"></div>
@@ -229,7 +229,7 @@
         </div>
         <div class="col-span-2">
           <label for="ghRepo" class="small">Repository</label>
-          <input id="ghRepo" type="text" placeholder="work-dashboard-data" />
+          <input id="ghRepo" type="text" placeholder="work--data" />
         </div>
         <div class="col-span-2">
           <label for="ghBranch" class="small">Branch</label>
@@ -637,7 +637,7 @@
   };
 
   // Defaults prefilled for convenience; user can change them.
-  const DEFAULT_SYNC_CONF = { owner:"slappybruh", repo:"dashboard-public", branch:"main", path:"data.json", autoPull:true };
+  const DEFAULT_SYNC_CONF = { owner:"slappybruh", repo:"personal-dashboard", branch:"main", path:"data.json", autoPull:true };
 
   function loadSyncSettings(){
     const confRaw = localStorage.getItem("dashboard.sync.conf");
