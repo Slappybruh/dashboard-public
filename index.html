@@ -267,7 +267,7 @@
 </main>
 
 <footer class="footer">
-  <div>Single-file • Offline • Local storage (Export/Import) • Optional GitHub sync (client-side)</div>
+  <div>Slapper V1.0</div>
 </footer>
 
 <script>
@@ -684,7 +684,7 @@
   load();
   // Prefill defaults if no conf stored yet
   if (!localStorage.getItem("dashboard.sync.conf")){
-    localStorage.setItem("dashboard.sync.conf", JSON.stringify({ owner:"slappybruh", repo:"dashboard-public", branch:"main", path:"data.json", autoPull:true }));
+    localStorage.setItem("dashboard.sync.conf", JSON.stringify({ owner:"slappybruh", repo:"personal-dashboard", branch:"main", path:"data.json", autoPull:true }));
   }
   // Attempt auto-pull
   tryAutoPull();
