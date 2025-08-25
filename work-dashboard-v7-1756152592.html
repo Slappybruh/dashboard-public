@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Work Dashboard — LYDDD + Sync</title>
+<style>
+  :root{
+    --bg:#0b0f14;
+    --panel:#111418;
+    --card:#141a20;
+    --card2:#0e1318;
+    --ring:#2a323c;
+    --text:#e5e7eb;
+    --muted:#9aa3ae;
+    --accent:#22d3ee;
+    --danger:#ef4444;
+    --good:#22c55e;
+  }
+  * { box-sizing: border-box; }
+  html, body { height:100%; }
+  body{
+    margin:0; background: var(--bg); color:var(--text);
+    font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  }
+  a { color:inherit; }
+  header{
+    position:sticky; top:0; z-index:10;
+    background:rgba(11,15,20,.85); backdrop-filter: blur(6px);
+    border-bottom:1px solid var(--ring);
+  }
+  .wrap{ max-width:1200px; margin:0 auto; padding:10px 14px; }
+  .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .grow{ flex:1 1 auto; }
+  .h1{ font-size:18px; font-weight:700; letter-spacing:.2px; }
+  .muted{ color:var(--muted); }
+
+  /* Dark inputs & textarea */
+  input[type="text"], input[type="number"], input[type="url"], input[type="password"], textarea, select {
+    background:var(--card2); color:var(--text); border:1px solid var(--ring);
+    padding:10px 12px; outline:none; border-radius:8px;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, input[type="url"]:focus, input[type="password"]:focus, textarea:focus, select:focus{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  /* Search (flush button) */
+  .searchwrap{ display:flex; width:100%; }
+  .searchwrap input[type="text"]{ border-radius:8px 0 0 8px; width:100%; }
+  .searchwrap button{
+    background: linear-gradient(180deg, #1b222a, #141b22);
+    color:var(--text); border:1px solid var(--ring); border-left:none;
+    padding:10px 14px; border-radius:0 8px 8px 0; cursor:pointer;
+    transition:.15s transform ease;
+  }
+  .searchwrap button:hover{ transform: translateY(-1px); }
+  .searchwrap button:active{ transform: translateY(0); }
+
+  /* Generic buttons */
+  button{
+    background: linear-gradient(180deg, #1b222a, #141b22);
+    color:var(--text); border:1px solid var(--ring); padding:9px 12px; border-radius:8px; cursor:pointer;
+  }
+  .btn-ghost{ background:transparent; }
+  .btn-danger{ background: linear-gradient(180deg, #3a1c1c, #2a1414); border-color:#522323; color:#f3d4d4; }
+  .btn-good{ background: linear-gradient(180deg, #1e3725, #172a1c); border-color:#214d31; color:#d2f2dc; }
+  .btn-warn{ background: linear-gradient(180deg, #3a321c, #2a2316); border-color:#5a4b22; color:#f3e5c4; }
+
+  /* Full-width content grid */
+  .grid{ display:grid; gap:12px; padding:14px; grid-template-columns: repeat(12, 1fr); width:100%; }
+  .card{ background:var(--card); border:1px solid var(--ring); border-radius:12px; padding:10px; }
+  .span-12{ grid-column: span 12; }
+  .span-6{ grid-column: span 6; }
+  @media (max-width: 900px){
+    .span-6{ grid-column: span 12; }
+  }
+
+  .titlebar{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+  .titlebar h3{ margin:0; font-size:15px; letter-spacing:.2px; }
+  .links{ display:grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap:8px; }
+  .link{
+    display:flex; align-items:center; gap:8px; padding:9px 11px; border-radius:10px; border:1px solid var(--ring);
+    text-decoration:none; color:var(--text); background:var(--card2);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .link:hover{ border-color: var(--accent); }
+  .controls{ display:flex; gap:8px; flex-wrap:wrap; }
+  .footer{ color:var(--muted); font-size:12px; padding:0 14px 20px; opacity:.9; }
+  .hidden{ display:none !important; }
+  .note{ width:100%; min-height: 100px; resize: vertical; } /* shorter default */
+
+  /* Compact info bar */
+  .info-bar{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    background:var(--panel); border:1px solid var(--ring); border-radius:10px; padding:6px 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .info-left{ display:flex; align-items:center; gap:12px; min-width: 280px; }
+  .lyddd{ font-size:22px; font-weight:800; letter-spacing:.3px; }
+  .divider{ width:1px; height:16px; background:var(--ring); }
+  .dt{ color:var(--muted); }
+  .flex-spacer{ flex:1 1 auto; }
+  .kbd{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding:.05rem .35rem; border:1px solid var(--ring); border-radius:6px; background:var(--card2); color:var(--muted); }
+  .sr{ position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+  .small{ font-size:12px; color:var(--muted); }
+
+  /* Best-before bar */
+  .bb-bar{
+    margin-top:8px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    background:var(--panel); border:1px solid var(--ring); border-radius:10px; padding:6px 8px;
+  }
+  .bb-inline{ display:flex; align-items:center; gap:8px; }
+  .bb-out{ color:var(--muted); }
+
+  /* Sync panel */
+  .sync-panel{
+    margin-top:8px; padding:10px; background:var(--panel); border:1px solid var(--ring); border-radius:10px;
+  }
+  .sync-grid{ display:grid; grid-template-columns: repeat(6, 1fr); gap:8px; }
+  .sync-grid .col-span-2{ grid-column: span 2; }
+  .sync-grid .col-span-3{ grid-column: span 3; }
+  .sync-grid .col-span-6{ grid-column: span 6; }
+  @media (max-width: 900px){
+    .sync-grid{ grid-template-columns: repeat(2, 1fr); }
+    .sync-grid .col-span-2, .sync-grid .col-span-3, .sync-grid .col-span-6{ grid-column: span 2; }
+  }
+  .status{ margin-top:8px; font-size:13px; color:var(--muted); }
+  .status.good{ color:var(--good); }
+  .status.bad{ color:var(--danger); }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="row">
+      <div class="h1">Work Dashboard <span class="muted">— LYDDD</span></div>
+      <div class="right"></div>
+    </div>
+    <div class="row">
+      <!-- Google-only search with appended button -->
+      <form class="grow searchwrap" onsubmit="return doSearch(event)">
+        <input id="q" type="text" placeholder="Search Google… (Alt+/)" aria-label="Search" autocomplete="off" />
+        <button type="submit" aria-label="Search">Search</button>
+      </form>
+    </div>
+  </div>
+</header>
+
+<main class="grid">
+  <!-- Row 1: Today (span-6) + Scratchpad (span-6) -->
+  <section class="card span-6" aria-labelledby="julianHeading">
+    <div class="titlebar" style="margin-bottom:6px">
+      <h3 id="julianHeading">Today</h3>
+    </div>
+    <div class="info-bar">
+      <div class="info-left">
+        <div id="lyddd" class="lyddd">—</div>
+        <div class="divider"></div>
+        <div class="dt"><span id="comfyDate">—</span> — <span id="time">—</span></div>
+      </div>
+      <div class="flex-spacer"></div>
+      <button type="button" class="btn-ghost" onclick="copyLYDDD()">Copy LYDDD</button>
+      <div class="small">Focus search: <span class="kbd">Alt</span>+<span class="kbd">/</span></div>
+    </div>
+
+    <!-- Best before calculator row -->
+    <div class="bb-bar" aria-labelledby="bbHeading">
+      <div class="bb-inline">
+        <strong id="bbHeading">Best before:</strong>
+        <input id="bbMonths" type="number" min="0" step="1" value="12" aria-label="Months to add" style="width:90px" />
+        <span>months</span>
+      </div>
+      <div class="bb-out">→ <span id="bbOut">—</span></div>
+    </div>
+  </section>
+
+  <section class="card span-6" aria-labelledby="notesHeading">
+    <div class="titlebar" style="margin-bottom:6px">
+      <h3 id="notesHeading">Scratchpad</h3>
+    </div>
+    <textarea id="notes" class="note" placeholder="Quick notes… (auto-saves)"></textarea>
+  </section>
+
+  <!-- Row 2: Bookmarks spanning full width -->
+  <section class="card span-12" id="sectionsCard" aria-labelledby="sectionsHeading">
+    <div class="titlebar">
+      <h3 id="sectionsHeading">Bookmarks</h3>
+      <div class="controls">
+        <button class="btn-ghost" onclick="toggleEdit()"><span id="editLabel">Enter Edit Mode</span></button>
+        <button class="btn-ghost" onclick="addSection()">+ Section</button>
+        <button class="btn-ghost" onclick="exportData()">Export</button>
+        <label class="btn-ghost" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer">
+          Import <input type="file" id="importFile" accept=".json" class="sr" onchange="importData(this.files[0])" />
+        </label>
+        <button class="btn-good" onclick="toggleSync()">Sync</button>
+        <button class="btn-danger" onclick="if(confirm('Reset dashboard to defaults?')) resetAll()">Reset</button>
+      </div>
+    </div>
+    <div id="sections"></div>
+
+    <!-- Sync panel (collapsed by default) -->
+    <div id="syncPanel" class="sync-panel hidden">
+      <div class="sync-grid">
+        <div class="col-span-2">
+          <label for="ghOwner" class="small">GitHub owner/user</label>
+          <input id="ghOwner" type="text" placeholder="your-username" />
+        </div>
+        <div class="col-span-2">
+          <label for="ghRepo" class="small">Repository</label>
+          <input id="ghRepo" type="text" placeholder="work-dashboard-data" />
+        </div>
+        <div class="col-span-2">
+          <label for="ghBranch" class="small">Branch</label>
+          <input id="ghBranch" type="text" value="main" />
+        </div>
+        <div class="col-span-3">
+          <label for="ghPath" class="small">File path in repo</label>
+          <input id="ghPath" type="text" value="data.json" />
+        </div>
+        <div class="col-span-3">
+          <label for="ghToken" class="small">Personal Access Token</label>
+          <input id="ghToken" type="password" placeholder="Paste token…" />
+        </div>
+        <div class="col-span-6" style="display:flex; align-items:center; gap:10px;">
+          <label class="small" style="display:flex; align-items:center; gap:6px;">
+            <input id="rememberToken" type="checkbox" /> Remember token on this device
+          </label>
+          <span class="small">Scope needed: repo contents (read/write). Fine‑grained token to this repo is best.</span>
+        </div>
+        <div class="col-span-6" style="display:flex; gap:8px; flex-wrap:wrap">
+          <button class="btn-good" onclick="ghPull()">Pull (replace local)</button>
+          <button class="btn-good" onclick="ghPush()">Push (save to GitHub)</button>
+          <button class="btn-warn" onclick="ghForget()">Forget credentials</button>
+        </div>
+      </div>
+      <div id="syncStatus" class="status">Sync is idle.</div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div>Single-file • Offline • Local storage (Export/Import) • Optional GitHub sync (client-side)</div>
+</footer>
+
+<script>
+(function(){
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const state = { edit:false, data:null, sync:{ sha:null } };
+  const GOOGLE = "https://www.google.com/search?q=%s";
+
+  const DEFAULTS = {
+    version: 1,
+    sections: [
+      { id: id(), title: "Work", links: [
+        { id:id(), label:"Outlook", url:"https://outlook.office.com/mail/"},
+        { id:id(), label:"Google Drive", url:"https://drive.google.com/"},
+        { id:id(), label:"D365", url:"https://www.office.com/"}
+      ]}
+    ],
+    notes: ""
+  };
+
+  function id(){ return Math.random().toString(36).slice(2,9); }
+
+  // Date formatting helpers
+  function ordinal(n){
+    const mod10 = n % 10, mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 13) return n + "th";
+    if (mod10 === 1) return n + "st";
+    if (mod10 === 2) return n + "nd";
+    if (mod10 === 3) return n + "rd";
+    return n + "th";
+  }
+  function formatComfyDate(d){
+    const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    return `Today is ${days[d.getDay()]} the ${ordinal(d.getDate())} of ${months[d.getMonth()]}`;
+  }
+  function formatLong(d){
+    const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    return `${days[d.getDay()]} the ${ordinal(d.getDate())} of ${months[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  // Clock + LYDDD
+  function tick(){
+    const now = new Date();
+    $("#comfyDate").textContent = formatComfyDate(now);
+    $("#time").textContent = now.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    $("#lyddd").textContent = computeLYDDD(now);
+    updateBB();
+  }
+  setInterval(tick, 1000); tick();
+
+  function dayOfYear(d){
+    const t = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
+    const start = new Date(d.getFullYear(), 0, 0, 12);
+    return Math.floor((t - start) / 86400000);
+  }
+  function computeLYDDD(d){
+    const doy = String(dayOfYear(d)).padStart(3,"0");
+    const y = String(d.getFullYear()).slice(-1);
+    return "L" + y + doy;
+  }
+  window.copyLYDDD = async function(){
+    try { await navigator.clipboard.writeText($("#lyddd").textContent.trim()); }
+    catch(e){ alert("Clipboard copy failed. You can select & copy manually."); }
+  }
+
+  // Best before calculator (months from today, clamped to last day of target month)
+  function addMonthsClamped(base, months){
+    const y = base.getFullYear();
+    const m = base.getMonth();
+    const d = base.getDate();
+    const targetMonthIndex = m + months;
+    const targetYear = y + Math.floor(targetMonthIndex / 12);
+    const targetMonth = ((targetMonthIndex % 12) + 12) % 12;
+    const lastDay = new Date(targetYear, targetMonth + 1, 0).getDate();
+    const day = Math.min(d, lastDay);
+    return new Date(targetYear, targetMonth, day, base.getHours(), base.getMinutes(), base.getSeconds());
+  }
+  function updateBB(){
+    const months = parseInt($("#bbMonths").value || "0", 10);
+    const now = new Date();
+    const bb = addMonthsClamped(now, isNaN(months) ? 0 : months);
+    $("#bbOut").textContent = formatLong(bb);
+  }
+  $("#bbMonths").addEventListener("input", updateBB);
+
+  // Google-only search
+  window.doSearch = function(e){
+    e.preventDefault();
+    const q = $("#q").value.trim();
+    if(!q){ $("#q").focus(); return false; }
+    const url = GOOGLE.replace("%s", encodeURIComponent(q));
+    window.location.href = url;
+    return false;
+  }
+  window.addEventListener("keydown", (ev)=>{
+    if(ev.altKey && ev.key === "/"){ ev.preventDefault(); $("#q").focus(); }
+  });
+
+  // Data
+  function load(){
+    try {
+      const raw = localStorage.getItem("dashboard.v1");
+      state.data = raw ? JSON.parse(raw) : structuredClone(DEFAULTS);
+    } catch(e){
+      console.warn("Resetting corrupt data", e);
+      state.data = structuredClone(DEFAULTS);
+    }
+    $("#notes").value = state.data.notes || "";
+    renderSections();
+  }
+  function save(){ localStorage.setItem("dashboard.v1", JSON.stringify(state.data)); }
+  $("#notes").addEventListener("input", ()=>{ state.data.notes = $("#notes").value; save(); });
+
+  function renderSections(){
+    const root = $("#sections"); root.innerHTML = "";
+    for(const sec of state.data.sections){
+      const el = document.createElement("div");
+      el.className = "card"; el.style.padding = "10px";
+      el.dataset.id = sec.id;
+      el.innerHTML = `
+        <div class="titlebar" style="margin-bottom:8px">
+          <h3 contenteditable="${state.edit}" spellcheck="false" class="section-title">${escapeHtml(sec.title)}</h3>
+          <div class="${state.edit ? "" : "hidden"}">
+            <button class="btn-ghost" onclick="addLink('${sec.id}')">+ Link</button>
+            <button class="btn-ghost" onclick="moveSection('${sec.id}', -1)">↑</button>
+            <button class="btn-ghost" onclick="moveSection('${sec.id}', 1)">↓</button>
+            <button class="btn-danger" onclick="deleteSection('${sec.id}')">Delete</button>
+          </div>
+        </div>
+        <div class="links"></div>
+      `;
+      const linksEl = el.querySelector(".links");
+      for(const link of sec.links){
+        const a = document.createElement("a");
+        a.href = link.url; a.target="_blank"; a.rel="noopener";
+        a.className="link"; a.title=link.url;
+        a.innerHTML = `<span>${escapeHtml(link.label)}</span>`;
+        linksEl.appendChild(a);
+
+        if(state.edit){
+          const controls = document.createElement("div");
+          controls.className = "controls";
+          controls.style.marginTop = "6px";
+          controls.innerHTML = `
+            <button class="btn-ghost" onclick="editLink('${sec.id}','${link.id}')">Edit</button>
+            <button class="btn-ghost" onclick="moveLink('${sec.id}','${link.id}',-1)">←</button>
+            <button class="btn-ghost" onclick="moveLink('${sec.id}','${link.id}',1)">→</button>
+            <button class="btn-danger" onclick="deleteLink('${sec.id}','${link.id}')">Remove</button>
+          `;
+            linksEl.appendChild(controls);
+        }
+      }
+      root.appendChild(el);
+      el.querySelector(".section-title").addEventListener("blur", (e)=>{
+        sec.title = e.target.textContent.trim() || "Untitled"; save();
+      });
+    }
+  }
+
+  window.toggleEdit = function(){
+    state.edit = !state.edit;
+    document.getElementById("editLabel").textContent = state.edit ? "Exit Edit Mode" : "Enter Edit Mode";
+    renderSections();
+  }
+  window.addSection = function(){
+    const title = prompt("Section name?", "New Section"); if(!title) return;
+    state.data.sections.push({ id:id(), title, links: [] }); save(); renderSections();
+  }
+  window.deleteSection = function(sectionId){
+    state.data.sections = state.data.sections.filter(s=>s.id!==sectionId); save(); renderSections();
+  }
+  window.moveSection = function(sectionId, delta){
+    const i = state.data.sections.findIndex(s=>s.id===sectionId); if(i<0) return;
+    const j = Math.max(0, Math.min(state.data.sections.length-1, i+delta));
+    const [s] = state.data.sections.splice(i,1); state.data.sections.splice(j,0,s); save(); renderSections();
+  }
+  window.addLink = function(sectionId){
+    const sec = state.data.sections.find(s=>s.id===sectionId); if(!sec) return;
+    const label = prompt("Link label?"); if(!label) return;
+    const url = prompt("URL (include https://)","https://"); if(!url) return;
+    sec.links.push({ id:id(), label, url }); save(); renderSections();
+  }
+  window.deleteLink = function(sectionId, linkId){
+    const sec = state.data.sections.find(s=>s.id===sectionId); if(!sec) return;
+    sec.links = sec.links.filter(l=>l.id!==linkId); save(); renderSections();
+  }
+  window.moveLink = function(sectionId, linkId, delta){
+    const sec = state.data.sections.find(s=>s.id===sectionId); if(!sec) return;
+    const i = sec.links.findIndex(l=>l.id===linkId); if(i<0) return;
+    const j = Math.max(0, Math.min(sec.links.length-1, i+delta));
+    const [l] = sec.links.splice(i,1); sec.links.splice(j,0,l); save(); renderSections();
+  }
+  window.editLink = function(sectionId, linkId){
+    const sec = state.data.sections.find(s=>s.id===sectionId); if(!sec) return;
+    const link = sec.links.find(l=>l.id===linkId); if(!link) return;
+    const newLabel = prompt("Label:", link.label) ?? link.label;
+    const newUrl = prompt("URL:", link.url) ?? link.url;
+    link.label = (newLabel||"").trim() || link.label;
+    link.url = (newUrl||"").trim() || link.url;
+    save(); renderSections();
+  }
+
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+
+  // Import / Export / Reset
+  window.exportData = function(){
+    const blob = new Blob([JSON.stringify(state.data, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "dashboard-data.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  window.importData = function(file){
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try {
+        const data = JSON.parse(reader.result);
+        if(!data.sections){ throw new Error("Invalid file"); }
+        state.data = data; save(); load();
+      } catch(e){ alert("Import failed: " + e.message); }
+    };
+    reader.readAsText(file);
+  }
+  window.resetAll = function(){
+    state.data = structuredClone(DEFAULTS); save(); load();
+  }
+
+  // --- Sync panel logic ---
+  window.toggleSync = function(){
+    $("#syncPanel").classList.toggle("hidden");
+    if (!$("#syncPanel").classList.contains("hidden")) loadSyncSettings();
+  };
+
+  function loadSyncSettings(){
+    const confRaw = localStorage.getItem("dashboard.sync.conf");
+    const tokenRaw = localStorage.getItem("dashboard.sync.token.persist");
+    const tokenSess = sessionStorage.getItem("dashboard.sync.token.session");
+    let conf = confRaw ? JSON.parse(confRaw) : { owner:"", repo:"", branch:"main", path:"data.json" };
+    $("#ghOwner").value = conf.owner || "";
+    $("#ghRepo").value = conf.repo || "";
+    $("#ghBranch").value = conf.branch || "main";
+    $("#ghPath").value = conf.path || "data.json";
+
+    const tok = tokenRaw || tokenSess || "";
+    $("#ghToken").value = tok ? "••••••••" : ""; // mask existing token
+    $("#rememberToken").checked = !!tokenRaw;
+  }
+
+  function currentSettings(){
+    const owner = $("#ghOwner").value.trim();
+    const repo = $("#ghRepo").value.trim();
+    const branch = $("#ghBranch").value.trim() || "main";
+    const path = $("#ghPath").value.trim() || "data.json";
+    let token = $("#ghToken").value.trim();
+    if (token === "••••••••") {
+      token = localStorage.getItem("dashboard.sync.token.persist") || sessionStorage.getItem("dashboard.sync.token.session") || "";
+    }
+    return { owner, repo, branch, path, token };
+  }
+
+  function storeSettings(opts){
+    const { owner, repo, branch, path, token } = opts;
+    localStorage.setItem("dashboard.sync.conf", JSON.stringify({ owner, repo, branch, path }));
+    if ($("#rememberToken").checked){
+      if (token) localStorage.setItem("dashboard.sync.token.persist", token);
+      sessionStorage.removeItem("dashboard.sync.token.session");
+    } else {
+      if (token) sessionStorage.setItem("dashboard.sync.token.session", token);
+      localStorage.removeItem("dashboard.sync.token.persist");
+    }
+  }
+
+  function status(msg, good=false, bad=false){
+    const el = $("#syncStatus");
+    el.textContent = msg;
+    el.classList.toggle("good", good);
+    el.classList.toggle("bad", bad);
+  }
+
+  async function ghRequest(url, method="GET", body=null, token=""){
+    const headers = {
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28"
+    };
+    if (token) headers["Authorization"] = "Bearer " + token;
+    if (body) headers["Content-Type"] = "application/json";
+    const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });
+    return res;
+  }
+
+  function toBase64(str){
+    try{
+      return btoa(unescape(encodeURIComponent(str)));
+    }catch(e){
+      return btoa(str);
+    }
+  }
+  function fromBase64(b64){
+    try{
+      return decodeURIComponent(escape(atob(b64)));
+    }catch(e){
+      return atob(b64);
+    }
+  }
+
+  // Pull: load remote JSON and replace local
+  window.ghPull = async function(){
+    const { owner, repo, branch, path, token } = currentSettings();
+    if (!owner || !repo || !path || !token){ status("Missing owner/repo/path/token.", false, true); return; }
+    storeSettings({ owner, repo, branch, path, token });
+    status("Pulling from GitHub...");
+    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
+    try{
+      const res = await ghRequest(url, "GET", null, token);
+      if (res.status === 404){
+        status("No remote file yet. Push to create it.", false, true);
+        state.sync.sha = null;
+        return;
+      }
+      if (!res.ok){
+        const t = await res.text(); status("Pull failed: " + t, false, true); return;
+      }
+      const json = await res.json();
+      const content = fromBase64(json.content || "");
+      state.sync.sha = json.sha || null;
+      const data = JSON.parse(content);
+      if (!data.sections){ status("Remote file format invalid.", false, true); return; }
+      state.data = data; save(); load();
+      status("Pulled and replaced local data.", true, false);
+    }catch(e){
+      status("Pull error: " + e.message, false, true);
+    }
+  };
+
+  // Push: save local JSON to remote (create or update using SHA)
+  window.ghPush = async function(){
+    const { owner, repo, branch, path, token } = currentSettings();
+    if (!owner || !repo || !path || !token){ status("Missing owner/repo/path/token.", false, true); return; }
+    storeSettings({ owner, repo, branch, path, token });
+    status("Pushing to GitHub...");
+    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeURIComponent(path)}`;
+    try{
+      const payload = {
+        version: 1,
+        notes: state.data.notes || "",
+        sections: state.data.sections || [],
+        updatedAt: new Date().toISOString()
+      };
+      const body = {
+        message: "Update dashboard data",
+        content: toBase64(JSON.stringify(payload, null, 2)),
+        branch
+      };
+      if (state.sync.sha) body.sha = state.sync.sha;
+      const res = await ghRequest(url, "PUT", body, token);
+      if (!res.ok){
+        const t = await res.text(); status("Push failed: " + t, false, true); return;
+      }
+      const out = await res.json();
+      state.sync.sha = (out.content && out.content.sha) ? out.content.sha : null;
+      status("Pushed successfully.", true, false);
+    }catch(e){
+      status("Push error: " + e.message, false, true);
+    }
+  };
+
+  window.ghForget = function(){
+    sessionStorage.removeItem("dashboard.sync.token.session");
+    localStorage.removeItem("dashboard.sync.token.persist");
+    status("Token cleared from this device.", true, false);
+    $("#ghToken").value = "";
+    $("#rememberToken").checked = false;
+  };
+
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+
+  load();
+})();
+</script>
+</body>
+</html>
